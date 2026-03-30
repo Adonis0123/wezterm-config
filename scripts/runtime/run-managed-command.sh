@@ -15,8 +15,9 @@ EOF
 
 load_nvm_if_needed() {
   local command_name="${1:-}"
+  local force="${2:-}"
 
-  if [[ -n "$command_name" ]] && command -v "$command_name" >/dev/null 2>&1; then
+  if [[ "$force" != "1" && -n "$command_name" ]] && command -v "$command_name" >/dev/null 2>&1; then
     runtime_log_debug managed_command "command already available on PATH" "command=$command_name"
     return
   fi
@@ -24,7 +25,8 @@ load_nvm_if_needed() {
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   if [[ -s "$NVM_DIR/nvm.sh" ]]; then
     runtime_log_info managed_command "loading nvm for command lookup" "command=${command_name:-unknown}" "nvm_dir=$NVM_DIR"
-    # Load nvm so non-interactive tmux startup shells can resolve agent CLIs.
+    # Load nvm so non-interactive tmux startup shells can resolve agent CLIs
+    # and child processes (hooks, statusline) inherit node/npx in PATH.
     # shellcheck disable=SC1090
     source "$NVM_DIR/nvm.sh"
   fi
@@ -39,7 +41,7 @@ apply_bootstrap() {
       return 0
       ;;
     nvm)
-      load_nvm_if_needed "$command_name"
+      load_nvm_if_needed "$command_name" "1"
       ;;
     *)
       runtime_log_error managed_command "unknown bootstrap" "bootstrap=$bootstrap"

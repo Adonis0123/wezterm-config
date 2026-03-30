@@ -365,6 +365,7 @@ function M.apply(opts)
   config.launch_menu = constants.launch_menu or {}
   local set_environment_variables = {
     COLORFGBG = '0;15',
+    COLORTERM = 'truecolor',
     WEZTERM_RUNTIME_MODE = constants.runtime_mode or 'hybrid-wsl',
   }
   if constants.shell and constants.shell.program and constants.shell.program ~= '' then
@@ -372,7 +373,8 @@ function M.apply(opts)
   end
   config.set_environment_variables = set_environment_variables
 
-  config.window_decorations = 'RESIZE'
+  config.window_decorations = 'TITLE | RESIZE'
+  config.window_close_confirmation = 'NeverPrompt'
   config.window_padding = {
     left = 0,
     right = 0,
@@ -463,7 +465,7 @@ function M.apply(opts)
         open_debug_chrome(wezterm, window, constants, logger)
       end),
     },
-    workspace_keybinding(wezterm, workspace, 'w', 'work'),
+    workspace_keybinding(wezterm, workspace, '2', 'work'),
     {
       key = 'd',
       mods = 'ALT',
@@ -474,7 +476,7 @@ function M.apply(opts)
       mods = 'ALT',
       action = wezterm.action.SwitchWorkspaceRelative(1),
     },
-    workspace_keybinding(wezterm, workspace, 'c', 'config'),
+    workspace_keybinding(wezterm, workspace, '3', 'config'),
     {
       key = 'X',
       mods = 'ALT|SHIFT',
@@ -514,6 +516,68 @@ function M.apply(opts)
       key = 'v',
       mods = 'CTRL|SHIFT',
       action = wezterm.action.PasteFrom 'Clipboard',
+    },
+    {
+      key = '4',
+      mods = 'ALT',
+      action = wezterm.action.InputSelector {
+        title = 'Keybindings',
+        choices = {
+          { label = 'Alt+2        Work workspace / 工作空间', id = 'work' },
+          { label = 'Alt+3        Config workspace / 配置空间', id = 'config' },
+          { label = 'Alt+d        Default workspace / 默认空间', id = 'default' },
+          { label = 'Alt+p        Next workspace / 下一空间', id = 'cycle' },
+          { label = 'Alt+v        Split vertical / 垂直分割', id = 'split_v' },
+          { label = 'Alt+s        Split horizontal / 水平分割', id = 'split_h' },
+          { label = 'Alt+o        Open in editor / 编辑器打开', id = 'vscode' },
+          { label = 'Alt+b        Chrome debug / 调试浏览器', id = 'chrome' },
+          { label = 'Alt+g        Worktree picker / 工作树选择 (tmux)', id = 'worktree' },
+          { label = 'Alt+Shift+G  Next worktree / 下一工作树 (tmux)', id = 'worktree_cycle' },
+          { label = 'Alt+Shift+X  Close workspace / 关闭空间', id = 'close' },
+          { label = 'Alt+Shift+Q  Quit WezTerm / 退出', id = 'quit' },
+        },
+        action = wezterm.action_callback(function(window, pane, id, label)
+          if not id then
+            return
+          end
+          local actions = {
+            work = function()
+              workspace.open(window, pane, 'work')
+            end,
+            config = function()
+              workspace.open(window, pane, 'config')
+            end,
+            default = function()
+              window:perform_action(wezterm.action.SwitchToWorkspace { name = 'default' }, pane)
+            end,
+            cycle = function()
+              window:perform_action(wezterm.action.SwitchWorkspaceRelative(1), pane)
+            end,
+            split_v = function()
+              window:perform_action(wezterm.action.SplitVertical { domain = 'CurrentPaneDomain' }, pane)
+            end,
+            split_h = function()
+              window:perform_action(wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' }, pane)
+            end,
+            vscode = function()
+              open_current_dir_in_vscode(wezterm, window, pane, constants, workspace, logger)
+            end,
+            chrome = function()
+              open_debug_chrome(wezterm, window, constants, logger)
+            end,
+            close = function()
+              workspace.close(window, pane)
+            end,
+            quit = function()
+              window:perform_action(wezterm.action.QuitApplication, pane)
+            end,
+          }
+          local fn = actions[id]
+          if fn then
+            fn()
+          end
+        end),
+      },
     },
   }
 
