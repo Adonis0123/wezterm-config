@@ -230,6 +230,9 @@ local base_constants = {
           dark = { 'codex' },
         },
       },
+      claude = {
+        command = { 'claude', '--dangerously-skip-permissions' },
+      },
     },
   },
   chrome_debug_browser = {
